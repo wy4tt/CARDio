@@ -193,10 +193,10 @@ void readFromSD(string (&randoStrings)[25])
     while (myFile.available())
     {
       compareMe = myFile.readString().c_str();
+      Serial.printf("%s vs %s \n", compareMe, randoStrings[i]);
 
       if (compareMe != randoStrings[i])
       {
-        Serial.println("hi");
         failureState();
       }
 
@@ -206,6 +206,7 @@ void readFromSD(string (&randoStrings)[25])
 
     if (j != 250000)
     {
+      Serial.println("failing");
       failureState();
     }
 
