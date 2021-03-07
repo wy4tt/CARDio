@@ -240,7 +240,7 @@ void setup()
         Serial.println("Step 5: Done");
 
         // start writing to the file
-        double looper = 10;
+        double looper = 10000;
         double writeTotal = 0;
         Serial.printf("\nStep 6: Writing %.0lf strings to file\n", looper * 25);
 
@@ -290,26 +290,45 @@ void setup()
         Serial.println("\nStep 9: Reading back all the strings to verify they match");
 
         int ridx = 0;
+        int howMany = 0;
+        double readTotal = 0;
+
         while (myFile.available())
         {
             char c;
             int idx = 0;
             char word[34];
+
+            // Get starting timepoint
+            auto readStart = high_resolution_clock::now();
             while ((c = myFile.read()) != '\n')
             {
                 word[idx++] = c;
             }
-            Serial.printf("\t%s", word);
+            // Get ending timepoint
+            auto readStop = high_resolution_clock::now();
+            auto readDuration = duration_cast<microseconds>(readStop - readStart);
+            readTotal += readDuration.count();
 
+            // Serial.printf("\t%s", word);
+            howMany++;
             if (strcmp(word, randoStrings[ridx++].c_str()) == 0)
             {
                 if (ridx == 25)
                 {
                     ridx = 0;
                 }
-                Serial.printf(" is a match!\n");
+            }
+            else
+            {
+                Serial.printf("\tString number %d or \"%s\" was not a match\n", howMany, word);
+                failureState();
             }
         }
+        double averageReadTime = readTotal / howMany;
+
+        Serial.printf("\tAll %d strings matched\n", howMany);
+        Serial.printf("\tAverage read time per string (microseconds): %f\n", averageReadTime);
     }
     else
     {
