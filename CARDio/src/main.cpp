@@ -183,63 +183,170 @@
 #include <time.h>   /* time */
 #include <string>
 
+#include <algorithm>
+#include <chrono>
+
 using namespace std;
+using namespace std::chrono;
 
 File myFile;
 string randoStrings[25];
-bool broken = false;
 
-void init();
-void initSerial();
-void initRand();
-void initSD();
-
-void storeTwentyFiveToMemory(string (&randoStrings)[25]);
+void failureState();
 string heckingMakeRandoString();
 
 void setup()
 {
     // Open serial communications and wait for port to open:
     Serial.begin(115200);
-    Serial.println("\n 1) Serial online");
+    Serial.println("\nStep 1: Bringing serial comms online");
+    while (Serial.available())
+    {
+        ;
+    }
+    Serial.println("Step 1: Done");
+
     // init srand
+    Serial.println("\nStep 2: Initializing randomness factor");
     srand(time(NULL));
-    Serial.println("\n 2) Randomness gucci");
+    Serial.println("Step 2: Done");
+
     // init the SD
+    Serial.println("\nStep 3: Initializing SD card");
     if (!SD.begin(5))
     {
-        Serial.println("\n 3) SD card initialization failed");
-        broken = !broken;
+        Serial.println("\tSD card initialization failed");
+        failureState();
     }
-    Serial.println("\n 3) SD good");
+    Serial.println("Step 3: Done");
 
-    if (broken)
-    {
-        Serial.println("FAILED");
-    }
-
-    storeTwentyFiveToMemory(randoStrings);
-}
-
-// take the array and generate 25 random strings, one for each index
-void storeTwentyFiveToMemory(string (&randoStrings)[25])
-{
-
+    // store the random strings to local device memory
+    Serial.println("\nStep 4: Creating random strings and saving to memory");
     for (int i = 0; i < 25; i++)
     {
         randoStrings[i] = heckingMakeRandoString();
+        Serial.printf("\t%s\n", randoStrings[i].c_str());
     }
+    Serial.println("Step 4: Done");
 
-    Serial.println("Step 4/N 🎬: Storing 25 random strings into memory\n");
+    // open a file to be written to
+    Serial.println("\nStep 5: Opening a txt file on the SD card");
+    myFile = SD.open("/test.txt", FILE_WRITE);
 
-    Serial.println("Step 4/N ✅: All 25 strings have been generated & stored in memory!\n\n");
+    // if the file opened okay, write to it:
+    if (myFile)
+    {
+        Serial.println("\tFile opened successfully");
+        Serial.println("Step 5: Done");
+
+        // start writing to the file
+        double looper = 10;
+        double writeTotal = 0;
+        Serial.printf("\nStep 6: Writing %.0lf strings to file\n", looper * 25);
+
+        for (int j = 0; j < looper; j++)
+        {
+            for (int i = 0; i < 25; i++)
+            {
+                // Get starting timepoint
+                auto writeStart = high_resolution_clock::now();
+
+                myFile.print(randoStrings[i].c_str());
+                myFile.print("\n");
+
+                // Get ending timepoint
+                auto writeStop = high_resolution_clock::now();
+
+                auto writeDuration = duration_cast<microseconds>(writeStop - writeStart);
+                writeTotal += writeDuration.count();
+            }
+        }
+
+        double averageWriteTime = writeTotal / (looper * 25.0);
+
+        Serial.printf("\tAll %.0lf strings written\n", looper * 25);
+        Serial.printf("\tAverage write time per string (microseconds): %f\n", averageWriteTime);
+    }
+    else
+    {
+        // if the file didn't open, print an error:
+        Serial.println("\tUnable to open file");
+        failureState();
+    }
+    Serial.println("Step 6: Done");
+
+    // close the file:
+    Serial.println("\nStep 7: Closing the file");
+    myFile.close();
+    Serial.println("Step 7: Done");
+
+    // re-open the file for reading:
+    Serial.println("\nStep 8: Re-opening the txt file");
+    myFile = SD.open("/test.txt");
+    if (myFile)
+    {
+        Serial.println("Step 8: Done");
+
+        Serial.println("\nStep 9: Reading back all the strings to verify they match");
+        while (myFile.available())
+        {
+            // char c;
+            // string word;
+            // c = myFile.read();
+            //
+            // if ((c != '\n') && (c != '\0'))
+            // {
+            //     // Serial.println(c);
+            //     word[i] = c;
+            //     i++;
+            // }
+            // else
+            // {
+            //     i = 0;
+            // }
+            // Serial.printf("\t%s\n", word.c_str());
+            //
+            // for (int i = 0; i < 35; i++)
+            // {
+            //     word[i] = myFile.read();
+            // }
+            // c = myFile.read();
+            // c = myFile.read();
+            // Serial.printf("\t%s\n", word.c_str());
+        
+            char c;
+            int idx = 0;
+            char word[34];
+
+            while ((c = myFile.read()) != '\n')
+            {
+                word[idx++] = c;
+            }
+            Serial.printf("\t%s\n", word);
+        }
+    }
+    else
+    {
+        // if the file didn't open, print an error:
+        Serial.println("\tUnable to open file");
+        failureState();
+    }
+    Serial.println("Step 9: Done");
+}
+
+void failureState()
+{
+    Serial.println("☠️☠️☠️ Something went terribly wrong ☠️☠️☠️");
+    Serial.println("Program aborted");
+    while (1)
+    {
+        ;
+    }
 }
 
 // make a random string of length 34
 string heckingMakeRandoString()
 {
-    Serial.println("Step 5/N 🎬: Generating random string of length 34");
-
     string buffer = "**********************************";
     int size = 34;
 
@@ -252,14 +359,7 @@ string heckingMakeRandoString()
     }
     buffer[size] = '\0';
 
-    Serial.printf("Step 5/N 👍: Thar she be -> \"%s\"\n", buffer.c_str());
-    Serial.println("Step 5/N ✅: Random string successfully generated\n");
-
     return buffer;
-}
-
-void init()
-{
 }
 
 void loop()
