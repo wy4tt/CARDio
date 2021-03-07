@@ -288,41 +288,27 @@ void setup()
         Serial.println("Step 8: Done");
 
         Serial.println("\nStep 9: Reading back all the strings to verify they match");
+
+        int ridx = 0;
         while (myFile.available())
         {
-            // char c;
-            // string word;
-            // c = myFile.read();
-            //
-            // if ((c != '\n') && (c != '\0'))
-            // {
-            //     // Serial.println(c);
-            //     word[i] = c;
-            //     i++;
-            // }
-            // else
-            // {
-            //     i = 0;
-            // }
-            // Serial.printf("\t%s\n", word.c_str());
-            //
-            // for (int i = 0; i < 35; i++)
-            // {
-            //     word[i] = myFile.read();
-            // }
-            // c = myFile.read();
-            // c = myFile.read();
-            // Serial.printf("\t%s\n", word.c_str());
-        
             char c;
             int idx = 0;
             char word[34];
-
             while ((c = myFile.read()) != '\n')
             {
                 word[idx++] = c;
             }
-            Serial.printf("\t%s\n", word);
+            Serial.printf("\t%s", word);
+
+            if (strcmp(word, randoStrings[ridx++].c_str()) == 0)
+            {
+                if (ridx == 25)
+                {
+                    ridx = 0;
+                }
+                Serial.printf(" is a match!\n");
+            }
         }
     }
     else
